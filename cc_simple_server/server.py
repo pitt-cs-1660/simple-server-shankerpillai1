@@ -36,7 +36,32 @@ async def create_task(task_data: TaskCreate):
     Returns:
         TaskRead: The created task data
     """
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Not implemented")
+    conn=get_db_connection()
+    cursor=conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO tasks (title, description, completed)
+        VALUES (?, ?, ?)
+        """,
+        (task_data.title, task_data.description, task_data.completed),
+        )
+
+    conn.commit()
+    task_id=cursor.lastrowid
+    cursor.execute(
+            "SELECT id, title, description, completed FROM tasks WHERE id = ?;",
+            (task_id,),
+        )
+
+    row=cursor.fetchone()
+    return TaskRead(
+            id=row[0],
+            title=row[1],
+            description=row[2],
+            completed=bool(row[3]),
+        )
+    #raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Not implemented")
 
 
 # GET ROUTE to get all tasks
@@ -51,7 +76,24 @@ async def get_tasks():
     Returns:
         list[TaskRead]: A list of all tasks in the database
     """
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Not implemented")
+    conn=get_db_connection()
+    cursor=conn.cursor()
+    cursor.execute("SELECT id, title, description, completed FROM tasks;")
+    rows=cursor.fetchall()
+
+    tasks=[
+        TaskRead(
+            id=row[0],
+            title=row[1],
+            description=row[2],
+            completed=bool(row[3])
+         )  
+         for row in rows
+     ]
+
+    return tasks
+
+    #raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Not implemented")
 
 
 # UPDATE ROUTE data is sent in the body of the request and the task_id is in the URL
